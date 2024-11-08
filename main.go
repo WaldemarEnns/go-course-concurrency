@@ -14,11 +14,13 @@ type Philosopher struct {
 	leftChopstick, rightChopstick *ChopStick
 }
 
-type Host struct {
-	eatingPhilosophers map[int]Philosopher
-}
+var host = make(chan int, 2)
 
-func (philosopher Philosopher) eat() {
+var wg sync.WaitGroup
+
+func (philosopher Philosopher) eat(c chan int) {
+	c <- philosopher.number
+
 	philosopher.leftChopstick.Lock()
 	philosopher.rightChopstick.Lock()
 
@@ -27,25 +29,9 @@ func (philosopher Philosopher) eat() {
 
 	philosopher.leftChopstick.Unlock()
 	philosopher.rightChopstick.Unlock()
-}
 
-func (host Host) requestEatPermission(philosopher Philosopher) bool {
-	if len(host.eatingPhilosophers) >= 2 {
-		return false
-	}
-
-	var _, hasPhilosopher = host.eatingPhilosophers[philosopher.number]
-
-	if hasPhilosopher {
-		return false
-	} else {
-		host.eatingPhilosophers[philosopher.number] = philosopher
-		return true
-	}
-}
-
-func (host Host) releaseEatingPhilosopher(philosopher Philosopher) {
-	delete(host.eatingPhilosophers, philosopher.number)
+	<-c
+	wg.Done()
 }
 
 func main() {
@@ -63,8 +49,12 @@ func main() {
 			chopSticks[(i+1)%5]}
 	}
 
-	// each philosopher should only eat three times
-	for i := 0; i < 5; i++ {
-		go philosophers[i].eat()
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 5; j++ {
+			wg.Add(1)
+			go philosophers[j].eat(host)
+		}
 	}
+
+	wg.Wait()
 }
