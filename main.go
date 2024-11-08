@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 type ChopStick struct {
@@ -25,6 +26,9 @@ func (philosopher Philosopher) eat(c chan int) {
 	philosopher.rightChopstick.Lock()
 
 	fmt.Printf("starting to eat %v\n", philosopher.number)
+
+	time.Sleep(500 * time.Millisecond)
+
 	fmt.Printf("finished eating %v\n", philosopher.number)
 
 	philosopher.leftChopstick.Unlock()
